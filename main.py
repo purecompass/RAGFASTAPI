@@ -47,6 +47,11 @@ def root() -> dict:
     }
 
 
+@app.get("/api/health", tags=["meta"])
+def health_check() -> dict:
+    return {"status": "ok", "service": "Customer Support API"}
+
+
 app.include_router(UploadFile.router)
 app.include_router(CustomerSupport.router)
 # app.include_router(faq.router)
