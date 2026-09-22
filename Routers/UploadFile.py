@@ -1,17 +1,32 @@
 from fastapi import APIRouter
-from db import get_db
 from pydantic import BaseModel
+
+try:
+    from ..db import get_db
+except ImportError:
+    from db import get_db
+
 
 class ClientRequest(BaseModel):
     clientid: int
+
+
 router = APIRouter(prefix="/UploadFile", tags=["UploadFile"])
 
+
 @router.post("")
-def getModleName(req: ClientRequest):
-     clientid = req.clientid
-     with get_db() as conn:
+def getModelName(req: ClientRequest):
+    clientid = req.clientid
+
+    with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM get_model_names_by_client(1);")
-        model_name = cur.fetchone()[0]
-        conn.commit()
-        return {"model name": model_name, "message": "model name successfully"}
+        cur.execute("CALL get_model_names_by_client(%s)", (clientid,))
+        result = cur.fetchall()
+
+    if not result or not result[0]:
+        return {"model name": None, "message": "No model found for this client"}
+
+    first_row = result[0]
+    model_name = first_row[0] if first_row else None
+
+    return {"model name": model_name, "message": "model name successfully"}
