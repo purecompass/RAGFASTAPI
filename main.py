@@ -16,8 +16,18 @@ except ImportError:
 
 
 def get_cors_origins() -> list[str]:
-    configured_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
-    return [origin.strip() for origin in configured_origins.split(",") if origin.strip()]
+    configured_origins = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,https://ragchatbog.netlify.app",
+    )
+    origins = [origin.strip() for origin in configured_origins.split(",") if origin.strip()]
+
+    # Allow any Netlify-hosted frontend in addition to explicit config values.
+    netlify_origin = "https://ragchatbog.netlify.app"
+    if netlify_origin not in origins:
+        origins.append(netlify_origin)
+
+    return origins
 
 
 app = FastAPI(
@@ -31,6 +41,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
+    allow_origin_regex=r"https://.*\.netlify\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
