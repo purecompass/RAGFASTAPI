@@ -19,7 +19,14 @@ DB_CONFIG = {
 
 @contextmanager
 def get_db():
-    conn = mysql.connector.connect(**DB_CONFIG)
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+    except mysql.connector.Error as exc:
+        raise RuntimeError(
+            f"MySQL connection failed for host {DB_CONFIG['host']}:{DB_CONFIG['port']} "
+            f"database {DB_CONFIG['database']}. Check your .env values for DB_HOST, DB_PORT, "
+            "DB_NAME, DB_USER, and DB_PASSWORD."
+        ) from exc
     try:
         yield conn
     finally:
