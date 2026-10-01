@@ -1,17 +1,21 @@
+import logging
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 package_dir = Path(__file__).resolve().parent
 load_dotenv(package_dir / ".env")
 load_dotenv(Path.cwd() / ".env")
 
 try:
+    from .db import record_exception
     from .Routers import UploadFile, CustomerSupport
 except ImportError:
+    from db import record_exception
     from Routers import UploadFile, CustomerSupport
 
 
@@ -37,6 +41,14 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+logger = logging.getLogger(__name__)
+
+
+@app.exception_handler(Exception)
+async def log_unhandled_exception(request: Request, exc: Exception):
+    logger.exception("Unhandled request exception: %s %s", request.method, request.url.path)
+    record_exception(f"{request.method} {request.url.path}", exc)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 app.add_middleware(
     CORSMiddleware,

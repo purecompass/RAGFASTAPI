@@ -2,9 +2,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 try:
-    from ..db import get_db
+    from ..db import get_db, record_exception
 except ImportError:
-    from db import get_db
+    from db import get_db, record_exception
 
 
 class CustomerCreateRequest(BaseModel):
@@ -92,7 +92,8 @@ def _fetch_led_dashboard():
                 for row in recent_rows
             ]
             return {"leadSummary": leadSummary, "recentLeads": recentLeads}
-    except Exception:
+    except Exception as exc:
+        record_exception("CustomerSupport.dashboard", exc)
         return None
 
 
@@ -120,7 +121,8 @@ def _fetch_led_customers():
                 "location": row.get("LCM_Location"),
                 "customerType": row.get("LCM_Customer_Type"),
             } for row in rows]
-    except Exception:
+    except Exception as exc:
+        record_exception("CustomerSupport.customers", exc)
         return None
 
 
@@ -145,7 +147,8 @@ def _insert_led_customer(payload: CustomerCreateRequest):
             result = next(cursor.stored_results())
             inserted_id = result.fetchall()[0]["LCM_Customer_ID"]
             return {"customer": {"id": inserted_id, "name": payload.name, "status": "Active"}}
-    except Exception:
+    except Exception as exc:
+        record_exception("CustomerSupport.create_customer", exc)
         return None
 
 

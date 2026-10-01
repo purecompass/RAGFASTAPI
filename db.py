@@ -1,9 +1,12 @@
 import os
+import logging
 from contextlib import contextmanager
 
 import mysql.connector
 from dotenv import load_dotenv
 
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -11,7 +14,7 @@ DB_CONFIG = {
     "user": os.getenv("DB_USER", os.getenv("USER")),
     "password": os.getenv("DB_PASSWORD", os.getenv("PASSWORD")),
     "host": os.getenv("DB_HOST", os.getenv("HOST", "localhost")),
-    "port": int(os.getenv("DB_PORT", os.getenv("PORT", 3306))),
+    "port": int(os.getenv("DB_PORT", "3306")),
     "database": os.getenv("DB_NAME", os.getenv("DBNAME", "champ_1f2_customer_support_db")),
     "autocommit": True,
 }
@@ -31,3 +34,23 @@ def get_db():
         yield conn
     finally:
         conn.close()
+
+
+def record_exception(source: str, exc: Exception) -> None:
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    """INSERT INTO Application_Exception_Log
+                    (AEL_Source, AEL_Exception_Type, AEL_Message)
+                    VALUES (%s, %s, %s)""",
+                    (source[:255], type(exc).__name__[:255], str(exc)[:16000]),
+                )
+            finally:
+                cursor.close()
+    except Exception:
+        logger.exception(
+            "Could not persist exception to Application_Exception_Log (source=%s)",
+            source,
+        )
