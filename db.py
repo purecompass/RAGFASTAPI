@@ -27,8 +27,8 @@ def get_db():
     except mysql.connector.Error as exc:
         raise RuntimeError(
             f"MySQL connection failed for host {DB_CONFIG['host']}:{DB_CONFIG['port']} "
-            f"database {DB_CONFIG['database']}. Check your .env values for DB_HOST, DB_PORT, "
-            "DB_NAME, DB_USER, and DB_PASSWORD."
+            f"database {DB_CONFIG['database']} (MySQL error {exc.errno}: {exc.msg}). "
+            "Check DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD."
         ) from exc
     try:
         yield conn
@@ -49,8 +49,14 @@ def record_exception(source: str, exc: Exception) -> None:
                 )
             finally:
                 cursor.close()
-    except Exception:
-        logger.exception(
-            "Could not persist exception to Application_Exception_Log (source=%s)",
+    except Exception as logging_exc:
+        logger.error(
+            "Could not persist exception to Application_Exception_Log "
+            "(source=%s; logging failure=%s: %s). Original exception=%s: %s",
             source,
+            type(logging_exc).__name__,
+            logging_exc,
+            type(exc).__name__,
+            exc,
+            exc_info=(type(exc), exc, exc.__traceback__),
         )
